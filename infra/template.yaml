@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: GenAI Developer Productivity Assistant - Serverless RAG backend
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        PINECONE_INDEX: !Ref PineconeIndexName
+
+Parameters:
+  PineconeApiKey:
+    Type: String
+    NoEcho: true
+    Description: Pinecone API key
+  PineconeIndexName:
+    Type: String
+    Default: genai-assistant
+    Description: Name of the Pinecone index
+
+Resources:
+  AskFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: genai-ask
+      CodeUri: ../lambda
+      Handler: handler.lambda_handler
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/amazon.titan-embed-text-v2:0'
+                - !Sub 'arn:aws:bedrock:${AWS::Region}::foundation-model/anthropic.claude-3-5-haiku-*'
+      Environment:
+        Variables:
+          PINECONE_API_KEY: !Ref PineconeApiKey
+      Events:
+        AskApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AskApiGateway
+            Path: /ask
+            Method: POST
+
+  AskApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: genai-ask-api
+      Description: API Gateway for GenAI Developer Assistant
+
+  AskResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref AskApiGateway
+      ParentId: !GetAtt AskApiGateway.RootResourceId
+      PathPart: ask
+
+  AskMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AskApiGateway
+      ResourceId: !Ref AskResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: aws_proxy
+        IntegrationHttpMethod: POST
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AskFunction.Arn}/invocations'
+
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - AskMethod
+    Properties:
+      RestApiId: !Ref AskApiGateway
+      StageName: prod
+
+  AskFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AskFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${AskApiGateway}/*/*'
+
+Outputs:
+  AskFunctionArn:
+    Description: ARN of the Ask Lambda function
+    Value: !GetAtt AskFunction.Arn
+
+  ApiEndpoint:
+    Description: API Gateway endpoint for asking questions
+    Value: !Sub 'https://${AskApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/ask'
+
+  PineconeIndexName:
+    Description: Pinecone index name
+    Value: !Ref PineconeIndexName

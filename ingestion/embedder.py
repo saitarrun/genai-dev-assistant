@@ -1,0 +1,9 @@
+from langchain_aws import BedrockEmbeddings
+
+
+def get_embeddings():
+    """Returns a Bedrock embeddings instance."""
+    return BedrockEmbeddings(
+        model_id="amazon.titan-embed-text-v2:0",
+        region_name="us-east-1",
+    )
