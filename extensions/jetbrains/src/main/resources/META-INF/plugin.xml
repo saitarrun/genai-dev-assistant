@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<idea-plugin>
+    <id>com.genai.codebase-search</id>
+    <name>GenAI Codebase Search</name>
+    <vendor email="support@genai.dev" url="https://github.com/saitarrun/genai-dev-assistant">
+        GenAI
+    </vendor>
+
+    <description><![CDATA[
+        Search your codebase with AI.
+        <br/>
+        Ask questions about your code and get instant, source-cited answers powered by Claude and vector search.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService
+            serviceImplementation="com.genai.GenAISettings" />
+        <projectConfigurable
+            parentId="tools"
+            instance="com.genai.GenAIConfigurable"
+            id="com.genai.GenAIConfigurable"
+            displayName="GenAI Search" />
+    </extensions>
+
+    <actions>
+        <action
+            id="com.genai.SearchAction"
+            class="com.genai.SearchAction"
+            text="Search with GenAI"
+            description="Search your codebase with AI"
+            icon="/icons/genai.svg">
+            <add-to-group group-id="SearchMenu" anchor="last" />
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift g" />
+        </action>
+    </actions>
+
+</idea-plugin>

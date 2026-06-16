@@ -1,0 +1,104 @@
+{
+  "name": "genai-codebase-search",
+  "displayName": "GenAI Codebase Search",
+  "description": "Search your codebase with AI - Ask questions, get source-cited answers",
+  "version": "0.1.0",
+  "publisher": "genai",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Search"
+  ],
+  "activationEvents": [
+    "onCommand:genai.search",
+    "onView:genai.sidebar"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "genai.search",
+        "title": "GenAI: Search Codebase",
+        "category": "GenAI"
+      },
+      {
+        "command": "genai.indexRepo",
+        "title": "GenAI: Index Current Repository",
+        "category": "GenAI"
+      },
+      {
+        "command": "genai.openSettings",
+        "title": "GenAI: Settings",
+        "category": "GenAI"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "genai.search",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "genai-sidebar",
+          "title": "GenAI Search",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "genai-sidebar": [
+        {
+          "id": "genai.search",
+          "name": "Search",
+          "type": "webview"
+        },
+        {
+          "id": "genai.repositories",
+          "name": "Repositories"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "GenAI",
+      "properties": {
+        "genai.apiUrl": {
+          "type": "string",
+          "default": "",
+          "description": "API Gateway URL for GenAI Assistant"
+        },
+        "genai.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API Key for GenAI Assistant"
+        },
+        "genai.defaultNamespace": {
+          "type": "string",
+          "default": "",
+          "description": "Default repository namespace"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^2.19.0"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
+  }
+}
