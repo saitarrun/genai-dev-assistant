@@ -8,6 +8,15 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ingestion.chunker import chunk_repository
 from ingestion.embedder import get_embeddings
+from utils.validation import (
+    validate_file_path,
+    validate_namespace,
+    validate_pinecone_connection,
+    validate_pinecone_api_key,
+    ValidationError,
+    print_validation_help,
+)
+from utils.config import get_pinecone_api_key, get_pinecone_index
 
 console = Console()
 
@@ -18,10 +27,14 @@ console = Console()
 @click.option("--dry-run", is_flag=True, help="Show chunks without embedding/upserting")
 def ingest(repo: str, namespace: str, dry_run: bool):
     """Ingest a repository into Pinecone."""
-    repo = str(Path(repo).resolve())
+    try:
+        # Validate inputs
+        repo_path = validate_file_path(repo, must_exist=True)
+        validate_namespace(namespace)
 
-    if not Path(repo).is_dir():
-        console.print(f"[red]Error: Repository path does not exist: {repo}[/red]")
+        console.print(f"[cyan]Chunking repository: {repo_path}[/cyan]")
+    except ValidationError as e:
+        print_validation_help(e)
         raise SystemExit(1)
 
     console.print(f"[cyan]Chunking repository: {repo}[/cyan]")
@@ -32,7 +45,7 @@ def ingest(repo: str, namespace: str, dry_run: bool):
         console=console,
     ) as progress:
         task = progress.add_task("Chunking files...", total=None)
-        documents = chunk_repository(repo, namespace)
+        documents = chunk_repository(str(repo_path), namespace)
         progress.update(task, completed=True)
 
     console.print(f"[green]✓[/green] Chunked into {len(documents)} documents")
@@ -44,11 +57,13 @@ def ingest(repo: str, namespace: str, dry_run: bool):
             console.print(f"{doc.page_content[:200]}...")
         return
 
-    api_key = os.getenv("PINECONE_API_KEY")
-    if not api_key:
-        console.print(
-            "[red]Error: PINECONE_API_KEY environment variable not set[/red]"
-        )
+    # Validate Pinecone connection
+    try:
+        api_key = get_pinecone_api_key()
+        validate_pinecone_api_key(api_key)
+        validate_pinecone_connection(api_key, get_pinecone_index())
+    except ValidationError as e:
+        print_validation_help(e)
         raise SystemExit(1)
 
     console.print("\n[cyan]Initializing Bedrock embeddings...[/cyan]")
